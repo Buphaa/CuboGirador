@@ -16,6 +16,28 @@ int ultimoEstadoBoton = HIGH;
 int red = 255, green = 0, blue = 0;  
 int breathSpeed = 22; 
 
+// Función para calibrar el sensor
+void calibrarSensor() {
+  float sumaX = 0, sumaY = 0, sumaZ = 0;
+  int numLecturas = 100;  // Número de lecturas para el promedio
+
+  for (int i = 0; i < numLecturas; i++) {
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);  // Leer el evento del sensor
+    sumaX += a.acceleration.x;
+    sumaY += a.acceleration.y;
+    sumaZ += a.acceleration.z;
+    delay(10);  // Pequeño retraso entre lecturas
+  }
+
+  // Promediar los valores
+  initialX = sumaX / numLecturas;
+  initialY = sumaY / numLecturas;
+  initialZ = sumaZ / numLecturas;
+
+  calibrando = false;
+}
+
 void setup() {
   Serial.begin(115200);
   
@@ -30,12 +52,8 @@ void setup() {
     while (1);
   }
 
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
-  initialX = a.acceleration.x;
-  initialY = a.acceleration.y;
-  initialZ = a.acceleration.z;
-  calibrando = false;
+  // Calibrar el sensor MPU6050
+  calibrarSensor();  // Llamada a la función de calibración
 }
 
 void loop() {
@@ -60,6 +78,14 @@ void loop() {
 void mostrarColorSensor() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
+
+  // Mostrar los valores de los ejes en el Serial Monitor
+  Serial.print("X: ");
+  Serial.print(a.acceleration.x);
+  Serial.print("  Y: ");
+  Serial.print(a.acceleration.y);
+  Serial.print("  Z: ");
+  Serial.println(a.acceleration.z);
 
   if (!calibrando && abs(a.acceleration.x - initialX) < 0.1 && abs(a.acceleration.y - initialY) < 0.1 && abs(a.acceleration.z - initialZ) < 0.1) {
     tft.fillScreen(TFT_BLACK); 
@@ -103,5 +129,4 @@ void mostrarEfectoRespiracion() {
 
   // Controlar la velocidad de respiración
   delay(30);  // Ajusta este valor para controlar la rapidez del efecto
-
 }
