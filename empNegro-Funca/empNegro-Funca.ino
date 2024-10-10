@@ -1,64 +1,30 @@
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
-#include <TFT_eSPI.h>  
+#include <Adafruit_NeoPixel.h>
 
-TFT_eSPI tft = TFT_eSPI();
+// Define el pin donde está conectada la tira LED y el número de LEDs
+#define PIN 16  // Cambia al pin que estés utilizando
+#define NUM_LEDS 5
 
-// Inicializar el MPU6050
-Adafruit_MPU6050 mpu;
-
-float initialX, initialY, initialZ;
-bool calibrando = true;
+// Crea el objeto Neopixel
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  Serial.begin(115200);
-  
-  tft.init();
-  tft.setRotation(1);
-  tft.fillScreen(TFT_BLACK);  
-
- 
-  if (!mpu.begin()) {
-    Serial.println("No se pudo encontrar un MPU6050");
-    while (1);
-  }
-
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
-  initialX = a.acceleration.x;
-  initialY = a.acceleration.y;
-  initialZ = a.acceleration.z;
-  calibrando = false;
+  // Inicializa la tira de LEDs
+  strip.begin();
+  strip.show();  // Apaga todos los LEDs al inicio
 }
 
 void loop() {
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
+  // Llama a la función que enciende los LEDs en secuencia con diferentes colores
+  colorWipe(strip.Color(255, 0, 0), 50); // Rojo
+  colorWipe(strip.Color(0, 255, 0), 50); // Verde
+  colorWipe(strip.Color(0, 0, 255), 50); // Azul
+}
 
-  Serial.print(a.acceleration.y);
-  Serial.print("-");
-  Serial.print(a.acceleration.z);
-  Serial.print("-");
-  Serial.println(a.acceleration.x);
-
-  if (!calibrando && abs(a.acceleration.x - initialX) < 0.1 && abs(a.acceleration.y - initialY) < 0.1 && abs(a.acceleration.z - initialZ) < 0.1) {
-    tft.fillScreen(TFT_BLACK); 
-  } else {
-   
-    int red = map(abs(a.acceleration.y - initialY), 0, 10, 0, 255);
-    int green = map(abs(a.acceleration.z - initialZ), 0, 10, 0, 255);
-    int blue = map(abs(a.acceleration.x - initialX), 0, 10, 0, 255);
-
-    red = constrain(red, 0, 255);
-    green = constrain(green, 0, 255);
-    blue = constrain(blue, 0, 255);
-
-    uint16_t color = tft.color565(red, green, blue);
-
-    tft.fillScreen(color);
+// Función para encender los LEDs con un color y un retardo específico
+void colorWipe(uint32_t color, int wait) {
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, color);  // Establece el color de cada LED
+    strip.show();                   // Actualiza la tira LED
+    delay(wait);                    // Espera el tiempo especificado
   }
-
-  delay(100);
 }
