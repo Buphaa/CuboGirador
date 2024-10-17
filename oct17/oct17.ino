@@ -2,14 +2,20 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_NeoPixel.h>
+#include <BluetoothSerial.h>
 
-#define LED_PIN 5       
-#define NUM_LEDS 5      
+// Definir la cantidad de LEDs y el pin
+#define LED_PIN 5       // Pin donde está conectada la tira Neopixel
+#define NUM_LEDS 5      // Número de LEDs en la tira
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// Inicializar el MPU6050
+// Inicializar el MPU6050 y Bluetooth
 Adafruit_MPU6050 mpu;
+BluetoothSerial SerialBT;
+
+// Variables para el color recibido vía Bluetooth
+int targetRed = 0, targetGreen = 0, targetBlue = 0;
 
 float initialX, initialY, initialZ;
 bool calibrando = true;
@@ -24,7 +30,9 @@ int breathSpeed = 22;
 
 void setup() {
   Serial.begin(115200);
-  
+  SerialBT.begin("ESP32_Game");  // Nombre Bluetooth
+  Serial.println("Bluetooth iniciado");
+
   pinMode(botonPin, INPUT_PULLUP);
   
   strip.begin();
@@ -58,10 +66,24 @@ void loop() {
   }
   ultimoEstadoBoton = estadoBoton;
 
+  // Si hay datos disponibles por Bluetooth, leer el color
+  if (SerialBT.available()) {
+    String colorData = SerialBT.readStringUntil('\n');
+    if (parseColorData(colorData)) {
+      Serial.println("Color recibido: " + colorData);
+    }
+  }
+
   if (modoSecuencia) {
     mostrarModoFiesta(); 
   } else {
     mostrarColorSensor();  
+  }
+
+  // Comparar colores entre MPU6050 y el recibido por Bluetooth
+  if (compararColores()) {
+    Serial.println("¡Colores iguales! ¡Ganaste!");
+    // Aquí puedes hacer algo como mostrar un mensaje en una pantalla conectada
   }
 
   delay(100);
@@ -84,9 +106,9 @@ void mostrarColorSensor() {
     apagarLeds();
   } else {
     // Ajustar el rango de mapeo para hacerlo más sensible
-    int red = map(a.acceleration.y - initialY, -5, 5, 0, 255);
-    int green = map(a.acceleration.z - initialZ, -5, 5, 0, 255);
-    int blue = map(a.acceleration.x - initialX, -5, 5, 0, 255);
+    red = map(a.acceleration.y - initialY, -5, 5, 0, 255);
+    green = map(a.acceleration.z - initialZ, -5, 5, 0, 255);
+    blue = map(a.acceleration.x - initialX, -5, 5, 0, 255);
 
     red = constrain(red, 0, 255);
     green = constrain(green, 0, 255);
@@ -137,4 +159,26 @@ void apagarLeds() {
     strip.setPixelColor(i, 0);  // Apagar el LED
   }
   strip.show();
+}
+
+// Función para analizar el color recibido vía Bluetooth
+bool parseColorData(String data) {
+  int commaIndex1 = data.indexOf(',');
+  int commaIndex2 = data.indexOf(',', commaIndex1 + 1);
+  if (commaIndex1 == -1 || commaIndex2 == -1) return false;
+
+  targetRed = data.substring(0, commaIndex1).toInt();
+  targetGreen = data.substring(commaIndex1 + 1, commaIndex2).toInt();
+  targetBlue = data.substring(commaIndex2 + 1).toInt();
+
+  return true;
+}
+
+// Función para comparar los colores del sensor y el Bluetooth
+bool compararColores() {
+  int diffR = abs(red - targetRed);
+  int diffG = abs(green - targetGreen);
+  int diffB = abs(blue - targetBlue);
+
+  return (diffR < 20 && diffG < 20 && diffB < 20);
 }
