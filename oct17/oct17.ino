@@ -19,7 +19,7 @@ int targetRed = 0, targetGreen = 0, targetBlue = 0;
 
 float initialX, initialY, initialZ;
 bool calibrando = true;
-bool modoSecuencia = false; 
+bool modoFiesta = false; 
 const int botonPin = 4;  
 int ultimoEstadoBoton = HIGH; 
 unsigned long ultimoTiempoBoton = 0; // Para debounce
@@ -30,7 +30,7 @@ int breathSpeed = 22;
 
 void setup() {
   Serial.begin(115200);
-  SerialBT.begin("ESP32_Game");  // Nombre Bluetooth
+  SerialBT.begin("ESP32_Cubito");  // Nombre Bluetooth
   Serial.println("Bluetooth iniciado");
 
   pinMode(botonPin, INPUT_PULLUP);
@@ -60,9 +60,9 @@ void loop() {
   unsigned long tiempoActual = millis();
 
   if (estadoBoton == LOW && ultimoEstadoBoton == HIGH && (tiempoActual - ultimoTiempoBoton) > debounceDelay) {
-    modoSecuencia = !modoSecuencia;  
+    modoFiesta = !modoFiesta;  
     ultimoTiempoBoton = tiempoActual;  // Actualizar el tiempo del último botón presionado
-    Serial.println(modoSecuencia ? "Modo secuencia activado" : "Modo sensor activado");
+    Serial.println(modoFiesta ? "Modo fiesta activado" : "Modo sensor activado");
   }
   ultimoEstadoBoton = estadoBoton;
 
@@ -74,7 +74,7 @@ void loop() {
     }
   }
 
-  if (modoSecuencia) {
+  if (modoFiesta) {
     mostrarModoFiesta(); 
   } else {
     mostrarColorSensor();  
